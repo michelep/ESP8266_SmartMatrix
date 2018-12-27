@@ -10,9 +10,11 @@
 // ************************************
 bool loadConfigFile() {
   DynamicJsonBuffer jsonBuffer;
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] loadConfigFile()");
-#endif
+  char debug[32];
+  uint8_t str_idx;
+  
+  DEBUG_PRINT("[DEBUG] loadConfigFile()");
+  
   configFile = SPIFFS.open(CONFIG_FILE, "r");
   if (!configFile) {
     DEBUG_PRINT("[CONFIG] Config file not available");
@@ -32,9 +34,16 @@ bool loadConfigFile() {
       strlcpy(config.syslog_server, root["syslog_server"] | "", sizeof(config.syslog_server));
       config.syslog_port = root["syslog_port"] | 514;
       strlcpy(config.api_key, root["api_key"] | "", sizeof(config.api_key));
+
+      for(str_idx=0;str_idx<MAX_DISPLAY_MESSAGES;str_idx++) {
+        sprintf(debug,"display_%d",str_idx);
+        config.display[str_idx] = String(root[debug] | "");
+        sprintf(debug,"[CONFIG] Load message %d: %s",str_idx,config.display[str_idx].c_str());
+        DEBUG_PRINT(debug);
+      }
       
-      strlcpy(config.display_1, root["display_1"] | "", sizeof(config.display_1));
       config.scroll_delay = root["scroll_delay"] | SCROLL_DELAY;
+      config.light_trigger = root["light_trigger"] | 0;
 
       DEBUG_PRINT("[CONFIG] Configuration loaded");
     }
@@ -45,7 +54,9 @@ bool loadConfigFile() {
 
 bool saveConfigFile() {
   DynamicJsonBuffer jsonBuffer;
-
+  uint8_t str_idx;
+  char debug[16];
+  
   DEBUG_PRINT("[DEBUG] saveConfigFile()");
 
   // Parse the root object
@@ -60,8 +71,13 @@ bool saveConfigFile() {
   root["syslog_port"] = config.syslog_port;
   root["api_key"] = config.api_key;
 
-  root["display_1"] = config.display_1;
+  for(str_idx=0;str_idx<MAX_DISPLAY_MESSAGES;str_idx++) {
+    sprintf(debug,"display_%d",str_idx);
+    root[debug] = config.display[str_idx].c_str();
+  }
+  
   root["scroll_delay"] = config.scroll_delay;
+  root["light_trigger"] = config.light_trigger;
 
   configFile = SPIFFS.open(CONFIG_FILE, "w");
   if(!configFile) {
@@ -70,6 +86,7 @@ bool saveConfigFile() {
   }
   if (root.printTo(configFile) == 0) {
     DEBUG_PRINT("[CONFIG] Failed to save config file !");
+    return false;
   } else {
     DEBUG_PRINT("[CONFIG] Configuration saved !");
   }

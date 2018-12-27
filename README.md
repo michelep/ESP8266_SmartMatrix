@@ -13,9 +13,7 @@ Dependencies:
 -------------
 
 Syslog Logger - https://github.com/arcao/Syslog/
-Task Scheduler - https://github.com/arkhipenko/TaskScheduler
 Arduino Json - https://arduinojson.org/
-Rest Client library - https://github.com/DaKaZ/esp8266-restclient
 NTP Client - https://github.com/gmag11/NtpClient
 
 BOM:
@@ -26,3 +24,11 @@ BOM:
 be able to build a simple wiring scheme
 
 Costs about 4-5$
+
+ChangeLog 
+---------
+v0.0.2
+- Lot of improvements, bug fixed, more stable
+
+v0.0.1
+- First release

@@ -4,9 +4,9 @@
 	<meta charset="utf-8" />
 	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-	<meta name="description" content="Led Matrix Controller" />
+	<meta name="description" content="Led Matrix Box control root" />
         <meta name="author" content="Michele <o-zone@zerozone.it> Pinassi" />
-	<title>Led Matrix</title>
+	<title>Led Matrix Box</title>
 	<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 	<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous" />
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
@@ -15,15 +15,59 @@
     <body>
 	<div class="container">
 	    <center><div id="result">&nbsp;</div></center>
-	    <h1 class="mt-5">Led Matrix Controller</h1>
+	    <h1 class="mt-5">Led Matrix Box</h1>
 	    <h5>%hostname%</h5>
 	    <form method="POST" action="/post">
 		<input type="hidden" name="action" value="display">
 		<div class="form-row">
-		    <div class="col-md-8">
-    			<label for="formDisplay">Display message:</label>
-		    	<input type="text" class="form-control" id="form_display_1" name="display_1" value="%display_1%" />
-		    	<p class="text-muted">Display message to show or REST URL where fetch data (must begin with "http"). [h][m][s] for current time, [D][M][Y] for current date</p>
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 1:</label>
+		    	<input type="text" class="form-control" id="form_display_1" name="display_0" value="%display_0%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 2:</label>
+		    	<input type="text" class="form-control" id="form_display_2" name="display_1" value="%display_1%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 3:</label>
+		    	<input type="text" class="form-control" id="form_display_3" name="display_2" value="%display_2%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 4:</label>
+		    	<input type="text" class="form-control" id="form_display_4" name="display_3" value="%display_3%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 5:</label>
+		    	<input type="text" class="form-control" id="form_display_5" name="display_4" value="%display_4%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 6:</label>
+		    	<input type="text" class="form-control" id="form_display_6" name="display_5" value="%display_5%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 7:</label>
+		    	<input type="text" class="form-control" id="form_display_7" name="display_6" value="%display_6%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+    			<label for="formDisplay">Display message 8:</label>
+		    	<input type="text" class="form-control" id="form_display_8" name="display_7" value="%display_7%" />
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-12">
+			<p class="text-muted">Display message to show or URL where fetch data (must begin with "http") via JSON file "data.json". [h][m][s] for current time, [D][M][Y] for current date. [MM] for full month name, [DD] for full day name.</p>
+		    </div>
+		</div><div class="form-row">
+		    <div class="col-md-4">
+    			<label for="formScrollDelay">Light sensor trigger:</label>
+		    	<input type="text" class="form-control" id="form_light_trigger" name="light_trigger" value="%light_trigger%" />
+		    	<p class="text-muted">Light sensor trigger (actual value: %light_value%)</p>
 		    </div>
 		    <div class="col-md-4">
     			<label for="formScrollDelay">Delay:</label>
@@ -120,7 +164,7 @@
 	    </div>
 	</div>
 	<div class="container">
-	    <p class="text-muted">Firmware %fw_name% %fw_version% - Uptime %uptime% secs - %timedate%</p>
+	    <p class="text-muted">Firmware %fw_name% %fw_version% - Uptime %uptime% secs - %display_cycles% display cycles - %timedate%</p>
 	</div>
     </body>
     <footer class="footer">
@@ -131,6 +175,6 @@
             	    <p class="small">by Michele &lt;o-zone@zerozone.it&gt; Pinassi - <a href="http://www.zerozone.it">zerozone.it</a></p>
         	</div>
             </div>
-        </div>
+        </div> 
     </footer>
 </html>

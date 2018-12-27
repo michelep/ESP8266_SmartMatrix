@@ -1,6 +1,8 @@
+//
+// Led Matrix banner
+// Michele <o-zone@zerozone.it> Pinassi
+//
 // Connections for ESP8266 hardware SPI are:
-// Vcc       3v3     LED matrices seem to work at 3.3V
-// GND       GND     GND
 // DIN        D7     HSPID or HMOSI
 // CS or LD   D8     HSPICS or HCS
 // CLK        D5     CLK or HCLK
@@ -28,19 +30,9 @@
 WiFiUDP udpClient;
 Syslog syslog(udpClient, SYSLOG_PROTO_IETF);
 
-// TaskScheduler
-// https://github.com/arkhipenko/TaskScheduler
-#include <TaskScheduler.h>
-
-Scheduler runner;
-
 // ArduinoJson
 // https://arduinojson.org/
 #include <ArduinoJson.h>
-
-// restClient
-// https://github.com/DaKaZ/esp8266-restclient
-#include "RestClient.h"  
 
 // NTP ClientLib 
 // https://github.com/gmag11/NtpClient
@@ -66,7 +58,7 @@ MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // Firmware data
 const char BUILD[] = __DATE__ " " __TIME__;
 #define FW_NAME         "led-module"
-#define FW_VERSION      "0.0.1"
+#define FW_VERSION      "0.0.2"
 
 // File System
 #include <FS.h>   
@@ -81,6 +73,8 @@ AsyncWebServer server(80);
 // https://github.com/gmag11/NtpClient
 #include <NtpClientLib.h>
 
+#define MAX_DISPLAY_MESSAGES 8
+
 // Config
 struct Config {
   // WiFi config
@@ -93,8 +87,9 @@ struct Config {
   char syslog_server[16];
   unsigned int syslog_port;
   // Display
-  char display_1[255];
+  String display[MAX_DISPLAY_MESSAGES];
   uint8_t scroll_delay;
+  unsigned int light_trigger;
   // Host config
   char hostname[16];
   // API Key
@@ -102,6 +97,8 @@ struct Config {
 };
 
 #define CONFIG_FILE "/config.json"
+
+#define LIGHT_TRIGGER_DELTA 50
 
 File configFile;
 Config config; // Global config object
@@ -111,7 +108,11 @@ const uint8_t CHAR_SPACING = 1;
 const uint8_t SCROLL_DELAY = 75;
 
 char curMessage[MESG_SIZE];
+uint8_t messageIdx=0;
 bool displayStringChanged=false;
+
+unsigned int lightSensorValue=0,lastLightSensorValue=0;
+unsigned long displayCycles=0;
 
 // ************************************
 // DEBUG_PRINT()
@@ -143,6 +144,7 @@ void scrollText(void)
   }
 }
 
+
 void scrollDataSink(uint8_t dev, MD_MAX72XX::transformType_t t, uint8_t col) {
   // Callback function for data that is being scrolled off the display
 }
@@ -163,6 +165,10 @@ uint8_t scrollDataSource(uint8_t dev, MD_MAX72XX::transformType_t t) {
       break;
     case S_NEXT_CHAR: // Load the next character from the font table
       if (*p == '\0') {
+        // Load next string
+        updateDisplayCb();
+        displayCycles++;
+        // IDLE
         state = S_IDLE;
       } else {
         showLen = mx.getChar(*p++, sizeof(cBuf) / sizeof(cBuf[0]), cBuf);
@@ -201,6 +207,8 @@ bool connectToWifi() {
 
   if(strlen(config.wifi_essid) > 0) {
     DEBUG_PRINT("[INIT] Connecting to "+String(config.wifi_essid));
+
+    WiFi.hostname(config.hostname);
 
     WiFi.begin(config.wifi_essid, config.wifi_password);
 
@@ -248,17 +256,6 @@ bool connectToWifi() {
 
 String displayString="";
 
-void getDisplayString() {
-  DEBUG_PRINT("[DEBUG] updateDisplay()");
-
-  displayString = String(config.display_1);
-  if(displayString.startsWith("http")) { // Fetch data from rest server
-    displayString = fetchDataSource(displayString);
-  } else {
-    DEBUG_PRINT("[DISPLAY] Show "+displayString);
-  }
-}
-
 // ************************************
 // updateDisplay()
 //
@@ -268,28 +265,70 @@ void getDisplayString() {
 String months[12] = { "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre" };
 String dow[7] = { "Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato" };
 
-void updateDisplay() {
-  String displayText;
+#define COUNTDOWN_TIME_T 1546300800
+
+String compileString(String source) {
   time_t t = now(); // store the current time in time variable t
+  time_t diff;
+  String countdown="";
 
-  displayText = displayString;
-  
-  displayText.replace("[h]",String(hour(t)));
-  displayText.replace("[m]",String(minute(t)));
-  displayText.replace("[s]",String(second(t)));
-  displayText.replace("[D]",String(day(t)));
-  displayText.replace("[DD]",dow[weekday(t)-1]);
-  displayText.replace("[M]",String(month(t)));
-  displayText.replace("[MM]",months[month(t)-1]);
-  displayText.replace("[Y]",String(year(t)));
-  
-  strncpy(curMessage,displayText.c_str(),sizeof(curMessage));
+  source.replace("[h]",String(hour(t)));
+  source.replace("[m]",String(minute(t)));
+  source.replace("[s]",String(second(t)));
+  source.replace("[D]",String(day(t)));
+  source.replace("[DD]",dow[weekday(t)-1]);
+  source.replace("[M]",String(month(t)));
+  source.replace("[MM]",months[month(t)-1]);
+  source.replace("[Y]",String(year(t)));
+  source.replace("[UPTIME]",String(millis()));
+  source.replace("[IDX]",String(messageIdx));
+  source.replace("[CYCLES]",String(displayCycles));
+   
+  diff = abs(t-COUNTDOWN_TIME_T);
+  if(day(diff) > 0) {
+    countdown = day(diff)+" giorni";    
+  }
+  if(hour(diff) > 0) {
+    countdown = countdown+", "+hour(diff)+" ore";
+  }
+  if(minute(diff) > 0) {
+    countdown = countdown+", "+minute(diff)+" minuti";
+  }      
+  if(second(diff) > 0) {
+    countdown = countdown+", "+second(diff)+" secondi";
+  }
 
-  scrollText();
+  source.replace("[COUNTDOWN]",countdown);
+   
+  return source;
 }
 
-#define UPDATE_DISPLAY 60000*15 // Quarter of hour
-Task updateDisplayTask(UPDATE_DISPLAY, TASK_FOREVER, &getDisplayString);
+void updateDisplayCb() {
+  DEBUG_PRINT("[DEBUG] updateDisplayCb()");
+  bool i=true;
+
+  if(config.display[0].length() == 0) {
+    displayString = "Need at least one message: connect to "+String(WiFi.localIP());
+    return;
+  }
+
+  while(i) {
+    if(config.display[messageIdx].length() > 0) {
+      displayString = config.display[messageIdx];
+    
+      if(displayString.startsWith("http")) { // Fetch data from rest server
+        displayString = fetchDataSource(displayString);
+      }
+      i = false;
+    }
+    messageIdx++;
+    if(messageIdx > MAX_DISPLAY_MESSAGES) {
+      messageIdx=0;
+    }
+  }
+ 
+  DEBUG_PRINT("[DISPLAY] Now displaying "+displayString);
+}
 
 // ************************************
 // SETUP()
@@ -306,9 +345,6 @@ void setup() {
   Serial.print(FW_VERSION);
   Serial.println(BUILD);
 
-    // Start scheduler
-  runner.init();
-
   // Initialize SPIFFS
   if(!SPIFFS.begin()){
     DEBUG_PRINT("[SPIFFS] Mount Failed. Try formatting...");
@@ -321,6 +357,14 @@ void setup() {
   } else {
     DEBUG_PRINT("[SPIFFS] OK");
   }
+
+  // Display initialization
+  mx.begin();
+  mx.setShiftDataInCallback(scrollDataSource);
+  mx.setShiftDataOutCallback(scrollDataSink);
+  mx.clear();
+  mx.control(MD_MAX72XX::INTENSITY, MAX_INTENSITY/2);
+  mx.control(MD_MAX72XX::UPDATE, MD_MAX72XX::ON);
 
   // Load configuration
   loadConfigFile();
@@ -353,15 +397,6 @@ void setup() {
   // Initialize web server on port 80
   initWebServer();
   
-  // Display initialization
-  mx.begin();
-  mx.setShiftDataInCallback(scrollDataSource);
-  mx.setShiftDataOutCallback(scrollDataSink);
-
-  // Get display data
-  runner.addTask(updateDisplayTask);
-  updateDisplayTask.enable();  
-
   // GO !  
 }
 
@@ -376,9 +411,6 @@ void loop() {
   // Handle OTA
   ArduinoOTA.handle();
 
-  // Scheduler
-  runner.execute();
-
   // NTP ?
   if(syncEventTriggered) {
     processSyncEvent(ntpEvent);
@@ -392,10 +424,26 @@ void loop() {
     last = millis();
   }
 
-  if(displayStringChanged) {
-    getDisplayString();
-    displayStringChanged = false;
+  // Tune display brightness
+  lightSensorValue = analogRead(A0);
+  if(abs(lightSensorValue - lastLightSensorValue) > LIGHT_TRIGGER_DELTA) {
+    lastLightSensorValue = lightSensorValue;
+    if(lightSensorValue > config.light_trigger) {
+      mx.control(MD_MAX72XX::INTENSITY, MAX_INTENSITY/2);
+    } else {
+      mx.control(MD_MAX72XX::INTENSITY, MAX_INTENSITY/8);
+    }
+  }
+
+  /* Now compile displayString string, that will be showned on display... */
+  String displayText = compileString(displayString);
+  
+  // Now parse meta commands, if present
+  if(displayText.length() > 0) {  
+    strncpy(curMessage,displayText.c_str(),MESG_SIZE);
+  } else {
+    sprintf(curMessage,"...");
   }
   
-  updateDisplay();
+  scrollText();
 }

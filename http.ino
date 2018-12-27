@@ -19,8 +19,12 @@ String templateProcessor(const String& var)
     return String(millis()/1000);
   }
   if(var=="timedate") {
-    return String();
+    return NTP.getTimeDateString();
   }
+  if(var=="display_cycles") {
+    return String(displayCycles);
+  }
+  
   //
   // Config values
   //
@@ -42,11 +46,21 @@ String templateProcessor(const String& var)
   if(var=="syslog_port") {
     return String(config.syslog_port);
   }
-  if(var == "display_1") {
-    return String(config.display_1);
+
+  if(var.startsWith("display_")) {
+    uint8_t str_idx;
+    str_idx = atoi(var.substring(var.lastIndexOf('_')+1).c_str());
+    return config.display[str_idx];
   }
+
   if(var == "scroll_delay") {
     return String(config.scroll_delay);
+  }
+  if(var == "light_trigger") {
+    return String(config.light_trigger);
+  }
+  if(var == "light_value") {
+    return String(lightSensorValue);
   }
   return String();
 }
@@ -65,12 +79,20 @@ void initWebServer() {
     
   server.on("/post", HTTP_POST, [](AsyncWebServerRequest *request) {
     String message;
-    if(request->hasParam("display_1", true)) {
-        strcpy(config.display_1,request->getParam("display_1", true)->value().c_str());
-        displayStringChanged = true;
+    uint8_t str_idx;
+    char debug[32];
+    for(str_idx=0;str_idx<MAX_DISPLAY_MESSAGES;str_idx++) {
+      sprintf(debug,"display_%d",str_idx);
+      if(request->hasParam(debug, true)) {
+          config.display[str_idx] = request->getParam(debug, true)->value();
+          displayStringChanged = true;
+      }
     }
     if(request->hasParam("scroll_delay", true)) {
         config.scroll_delay = atoi(request->getParam("scroll_delay", true)->value().c_str());
+    }
+    if(request->hasParam("light_trigger", true)) {
+        config.light_trigger = atoi(request->getParam("light_trigger", true)->value().c_str());
     }
     // 
     if(request->hasParam("wifi_essid", true)) {
@@ -91,8 +113,12 @@ void initWebServer() {
     if(request->hasParam("syslog_port", true)) {
         config.syslog_port = atoi(request->getParam("syslog_port", true)->value().c_str());
     }
-    saveConfigFile();
-    request->redirect("/?result=ok");
+    
+    if(saveConfigFile()) {
+      request->redirect("/?result=ok");
+    } else {
+      request->redirect("/?result=error");      
+    }
   });
   
   server.on("/ajax", HTTP_POST, [] (AsyncWebServerRequest *request) {
