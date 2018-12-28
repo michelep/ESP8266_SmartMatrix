@@ -43,6 +43,33 @@ values and strings to display.
 
 ![Configuration](assets/led_matrix_2.jpg "Configuration form")
 
+Variables
+---------
+
+[Y] = year
+
+[M] = month
+
+[D] = day
+
+[h] = hour
+
+[m] = minute
+
+[s] = seconds
+
+[DD] = day of week (Sunday, Monday...)
+
+[MM] = month name (January, February...)
+
+[IDX] = index of string displayed
+
+[UPTIME] = millis() of uptime
+
+[CYCLES] = how many display cycles
+
+[COUNTDOWN:{timestamp}] = countdown to {timestamp}
+
 ChangeLog 
 ---------
 *v0.0.2* (27.12.2018)
