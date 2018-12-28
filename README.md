@@ -8,8 +8,6 @@ A simple gadget that really like everyone: 4 led matrix displays that show the d
 to your liking. You can put it in the living room, in the shop window, on the work desk ... and it will 
 charm all those who come to see you!
 
-See more on 
-
 Dependencies:
 -------------
 
@@ -27,6 +25,23 @@ Wiring diagram
 --------------
 
 
+Build a nice case
+-----------------
+
+![Configuration](assets/led_matrix_3.jpg "")
+![Configuration](assets/led_matrix_4.jpg "")
+![Configuration](assets/led_matrix_5.jpg "")
+
+
+Web Interface
+-------------
+
+Displayed data should be entered via the included simple web interface, build with Bootstrap. Just go via browser to the IP assegned and type in the fields configuration 
+values and strings to display.
+
+![Configuration](assets/led_matrix_1.jpg "Configuration form")
+
+![Configuration](assets/led_matrix_2.jpg "Configuration form")
 
 ChangeLog 
 ---------
