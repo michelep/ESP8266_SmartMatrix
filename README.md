@@ -24,8 +24,9 @@ Hardware BOM:
 Wiring diagram
 --------------
 
+WIP ;)
 
-Build a nice case
+A nice case
 -----------------
 
 ![Configuration](assets/led_matrix_3.jpg "")
@@ -68,12 +69,16 @@ Variables
 
 [CYCLES] = how many display cycles
 
-[COUNTDOWN:{timestamp}] = countdown to {timestamp}
+[COUNTDOWN:{timestamp}] = countdown to {timestamp} - please note there's no error check so be nice ;-)
 
 ChangeLog 
 ---------
+*v0.0.3* (30.12.2018)
+- Some fixes
+
 *v0.0.2* (27.12.2018)
 - Lot of improvements, bug fixed, more stable
 
 *v0.0.1*
 - First release
+
