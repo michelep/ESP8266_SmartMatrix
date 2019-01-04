@@ -84,8 +84,8 @@ Variables
 
 ChangeLog 
 ---------
-*v0.0.4* (04.01.2019)
-- Added OpenWeatherForecast support and the related tag [FORECAST]
+*v0.0.4* 
+- Added OpenWeatherForecast support and the related tags
 - Added first boot "Access Point" mode support to configure the device without configuration
 - Added WiFi signal strenght meter on configuration section
 - Some other minor changes
