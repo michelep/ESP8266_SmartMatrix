@@ -19,49 +19,34 @@
 	    <h5>%hostname%</h5>
 	    <form method="POST" action="/post">
 		<input type="hidden" name="action" value="display">
+		<div class="row justify-content-md-center">
+    	    	    <div class="text-center">
+			Display messages
+        	    </div>
+        	</div>
 		<div class="form-row">
 		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 1:</label>
-		    	<input type="text" class="form-control" id="form_display_1" name="display_0" value="%display_0%" />
+			<label for="display_0">Display message 1</label>
+		    	<input type="text" class="form-control" id="form_display_0" name="display_0" value="%display_0%" maxlength="255" />
 		    </div>
 		</div><div class="form-row">
 		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 2:</label>
-		    	<input type="text" class="form-control" id="form_display_2" name="display_1" value="%display_1%" />
+			<label for="display_1">Display message 2</label>
+		    	<input type="text" class="form-control" id="form_display_1" name="display_1" value="%display_1%" maxlength="255" />
 		    </div>
 		</div><div class="form-row">
 		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 3:</label>
-		    	<input type="text" class="form-control" id="form_display_3" name="display_2" value="%display_2%" />
+			<label for="display_2">Display message 3</label>
+		    	<input type="text" class="form-control" id="form_display_2" name="display_2" value="%display_2%" maxlength="255" />
 		    </div>
 		</div><div class="form-row">
 		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 4:</label>
-		    	<input type="text" class="form-control" id="form_display_4" name="display_3" value="%display_3%" />
+			<label for="display_3">Display message 4</label>
+		    	<input type="text" class="form-control" id="form_display_3" name="display_3" value="%display_3%" maxlength="255" />
 		    </div>
 		</div><div class="form-row">
 		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 5:</label>
-		    	<input type="text" class="form-control" id="form_display_5" name="display_4" value="%display_4%" />
-		    </div>
-		</div><div class="form-row">
-		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 6:</label>
-		    	<input type="text" class="form-control" id="form_display_6" name="display_5" value="%display_5%" />
-		    </div>
-		</div><div class="form-row">
-		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 7:</label>
-		    	<input type="text" class="form-control" id="form_display_7" name="display_6" value="%display_6%" />
-		    </div>
-		</div><div class="form-row">
-		    <div class="col-md-12">
-    			<label for="formDisplay">Display message 8:</label>
-		    	<input type="text" class="form-control" id="form_display_8" name="display_7" value="%display_7%" />
-		    </div>
-		</div><div class="form-row">
-		    <div class="col-md-12">
-			<p class="text-muted">Display message to show or URL where fetch data (must begin with "http") via JSON file "data.json". [h][m][s] for current time, [D][M][Y] for current date. [MM] for full month name, [DD] for full day name.</p>
+			<p class="text-muted">Use [h][m][s] for current time, [D][M][Y] for current date. [MM] for full month name, [DD] for full day name.</p>
 		    </div>
 		</div><div class="form-row">
 		    <div class="col-md-4">
@@ -81,6 +66,7 @@
 		    </div>
 		</div>
 	    </form>
+	    <br/><br/>
 	    <div class="accordion" id="configSection"><!-- CONFIGURATION -->
 		<div class="card"><!-- CONFIG -->
 		    <div class="card-header" id="headingManual">
@@ -95,15 +81,20 @@
 			    <form class="form" method="POST" action="/post">
 				<input type="hidden" name="action" value="config">
 				<div class="form-row">
-				    <div class="col-md-6">
+				    <div class="col-md-4">
     		    			<label for="formAuthUser">Wifi ESSID</label>
 		    			<input type="text" class="form-control" id="form_wifi_essid" name="wifi_essid" value="%wifi_essid%" />
 		    			<p class="text-muted">Set your Wifi network name</p>
 				    </div>
-				    <div class="col-md-6">
+				    <div class="col-md-4">
 		    			<label for="formAuthPass">Wifi PSK</label>
 		    			<input type="text" class="form-control" id="form_wifi_password" name="wifi_password" value="%wifi_password%" />
 		    			<p class="text-muted">Your wifi password</p>
+				    </div>
+				    <div class="col-md-4">
+		    			<p>WiFi signal strenght (RSSI):</p>
+					<p><b>%wifi_rssi%</b> dBm</p>
+		    			<p class="text-muted">0-30dBm=Very Good, 31-50dBm=Good, 51-67dBm=Fair, 67-80dBm=Poor, >80dBm=Unstable</p>
 				    </div>
 				</div>
 				<div class="form-row">
@@ -121,6 +112,18 @@
 					<label for="formNTPTimeZone">NTP time zone</label>
 					<input type="text" class="form-control" id="form_ntp_timezone" name="ntp_timezone" value="%ntp_timezone%" />
 					<p class="text-muted">NTP time zone</p>
+				    </div>
+				</div>
+				<div class="form-row">
+				    <div class="col-md-6">
+    		    			<label for="formOWMApi">OpenWeatherMap API key:</label>
+		    			<input type="text" class="form-control" id="form_owm_apikey" name="owm_apikey" value="%owm_apikey%" />
+		    			<p class="text-muted">OpenWeatherMap API key. Get one for free on <a href="https://openweathermap.org">OpenWeatherMap website</a></p>
+				    </div>
+				    <div class="col-md-6">
+		    			<label for="formAuthPass">OpenWeatherMap City ID</label>
+		    			<input type="text" class="form-control" id="form_owm_cityid" name="owm_cityid" value="%owm_cityid%" />
+		    			<p class="text-muted">City ID for weather forecast, as from <a href="https://openweathermap.org/forecast5#cityid5">OpenWeatherMap API docs</a></p>
 				    </div>
 				</div>
 				<div class="form-row">
@@ -152,12 +155,20 @@
 		    			<p class="text-muted">Set syslog server port (default: 514)</p>
 				    </div>
 				</div>
-				<input type="submit" class="btn btn-info" value="Save" /> or <a href="/config.json" class="btn btn-xs btn-info">Backup config</a>
+				<div class="form-row">
+				    <div class="col-md-6">
+					<input type="submit" class="btn btn-info" value="Save" /> or <a href="/config.json" class="btn btn-xs btn-info">Backup config</a>
+				    <div>
+				</div>
 			    </form>
 			    <form class="form" method="POST" action="/restart">
-				<input type="hidden" name="action" value="restart">
-				<input type="submit" class="btn btn-warning" value="Restart" />
-			    </form>    
+				<div class="form-row">
+				    <div class="col-md-6">
+					<input type="hidden" name="action" value="restart">
+					<input type="submit" class="btn btn-warning" value="Restart" />
+				    </div>
+				</div>
+			    </form>
 			</div>
 		    </div>
 		</div><!-- /CONFIG -->

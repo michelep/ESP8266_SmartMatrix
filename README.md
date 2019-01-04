@@ -24,9 +24,8 @@ Hardware BOM:
 Wiring diagram
 --------------
 
-WIP ;)
 
-A nice case
+Build a nice case
 -----------------
 
 ![Configuration](assets/led_matrix_3.jpg "")
@@ -71,8 +70,26 @@ Variables
 
 [COUNTDOWN:{timestamp}] = countdown to {timestamp} - please note there's no error check so be nice ;-)
 
+[OWM-NOW] = OpenWeatherMap current weather status (i.e cloudy, rain, snow...)
+
+[OWM-NOW-T] = OpenWeatherMap current temperature
+
+[OWM-NOW-H] = OpenWeatherMap current humidity
+
+[OWM-FORECAST] = OpenWeatherMap forecast weather (i.e cloudy, rain, snow...)
+
+[OWM-FORECAST-T] = OpenWeatherMap forecast temperature
+
+[OWM-FORECAST-H] = OpenWeatherMap forecast humidity
+
 ChangeLog 
 ---------
+*v0.0.4* (04.01.2019)
+- Added OpenWeatherForecast support and the related tag [FORECAST]
+- Added first boot "Access Point" mode support to configure the device without configuration
+- Added WiFi signal strenght meter on configuration section
+- Some other minor changes
+
 *v0.0.3* (30.12.2018)
 - Some fixes
 
@@ -81,4 +98,3 @@ ChangeLog
 
 *v0.0.1*
 - First release
-

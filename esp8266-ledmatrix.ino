@@ -30,6 +30,9 @@
 WiFiUDP udpClient;
 Syslog syslog(udpClient, SYSLOG_PROTO_IETF);
 
+// Task Scheduler
+#include <TaskScheduler.h>
+
 // ArduinoJson
 // https://arduinojson.org/
 #include <ArduinoJson.h>
@@ -58,7 +61,10 @@ MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // Firmware data
 const char BUILD[] = __DATE__ " " __TIME__;
 #define FW_NAME         "led-module"
-#define FW_VERSION      "0.0.2"
+#define FW_VERSION      "0.0.4"
+
+#define DEFAULT_WIFI_ESSID "led-module"
+#define DEFAULT_WIFI_PASSWORD ""
 
 // File System
 #include <FS.h>   
@@ -73,7 +79,7 @@ AsyncWebServer server(80);
 // https://github.com/gmag11/NtpClient
 #include <NtpClientLib.h>
 
-#define MAX_DISPLAY_MESSAGES 8
+#define MAX_DISPLAY_MESSAGES 4
 
 // Config
 struct Config {
@@ -88,8 +94,12 @@ struct Config {
   unsigned int syslog_port;
   // Display
   String display[MAX_DISPLAY_MESSAGES];
+  // Display properties
   uint8_t scroll_delay;
   unsigned int light_trigger;
+  // OpenWeatherMap
+  char owm_apikey[36];
+  int owm_cityid;
   // Host config
   char hostname[16];
   // API Key
@@ -110,9 +120,22 @@ const uint8_t SCROLL_DELAY = 75;
 char curMessage[MESG_SIZE];
 uint8_t messageIdx=0;
 bool displayStringChanged=false;
+bool isAPMode=false;
+
+IPAddress myIP;
 
 unsigned int lightSensorValue=0,lastLightSensorValue=0;
 unsigned long displayCycles=0;
+
+String owmStatus="", owmCityName="", owmForecast="", owmForecastT="",owmForecastH="", owmNow="", owmNowT="", owmNowH="";
+
+// Scheduler and tasks...
+Scheduler runner;
+
+#define OWM_INTERVAL 60000*30 // Every 30 minutes...
+void owmCallback();
+Task owmTask(OWM_INTERVAL, TASK_FOREVER, &owmCallback);
+
 
 // ************************************
 // DEBUG_PRINT()
@@ -198,6 +221,32 @@ uint8_t scrollDataSource(uint8_t dev, MD_MAX72XX::transformType_t t) {
 }
 
 // ************************************
+// runWifiAP()
+//
+// run Wifi AccessPoint, to let user use and configure without a WiFi AP
+// ************************************
+void runWifiAP() {
+  DEBUG_PRINT("[DEBUG] runWifiAP() ");
+  WiFi.mode(WIFI_AP_STA); 
+  WiFi.softAP(DEFAULT_WIFI_ESSID,DEFAULT_WIFI_PASSWORD);  
+ 
+  myIP = WiFi.softAPIP(); //Get IP address
+
+  DEBUG_PRINT("[INIT] WiFi Hotspot ESSID: "+String(DEFAULT_WIFI_ESSID));
+  DEBUG_PRINT("[INIT] WiFi password: "+String(DEFAULT_WIFI_PASSWORD));
+  DEBUG_PRINT("[INIT] Server IP: "+String(myIP));
+
+  WiFi.printDiag(Serial);
+
+  if (MDNS.begin(config.hostname)) {
+    DEBUG_PRINT("[INIT] MDNS responder started for hostname "+String(config.hostname));
+    // Add service to MDNS-SD
+    MDNS.addService("http", "tcp", 80);
+  }
+  isAPMode=true;
+}
+
+// ************************************
 // connectToWifi()
 //
 // connect to configured WiFi network
@@ -208,6 +257,8 @@ bool connectToWifi() {
   if(strlen(config.wifi_essid) > 0) {
     DEBUG_PRINT("[INIT] Connecting to "+String(config.wifi_essid));
 
+    isAPMode=false;
+    
     WiFi.hostname(config.hostname);
 
     WiFi.begin(config.wifi_essid, config.wifi_password);
@@ -218,6 +269,7 @@ bool connectToWifi() {
     }
     if(WiFi.status() == WL_CONNECTED) {
       DEBUG_PRINT("OK. IP:"+String(WiFi.localIP()));
+      DEBUG_PRINT("Signal strength (RSSI):"+String(WiFi.RSSI())+" dBm");
 
       if (MDNS.begin(config.hostname)) {
         DEBUG_PRINT("[INIT] MDNS responder started");
@@ -249,8 +301,8 @@ bool connectToWifi() {
       return false;
     }
   } else {
-    DEBUG_PRINT("[ERROR] Please configure Wifi");
-    return false; 
+    // 
+    runWifiAP();
   }
 }
 
@@ -265,12 +317,11 @@ String displayString="";
 String months[12] = { "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre" };
 String dow[7] = { "Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato" };
 
-#define COUNTDOWN_TIME_T 1546300800
-
 String compileString(String source) {
   time_t t = now(); // store the current time in time variable t
   time_t diff;
-  String countdown="";
+  String countdown="",temp="";
+  int8_t idx;
 
   source.replace("[h]",String(hour(t)));
   source.replace("[m]",String(minute(t)));
@@ -283,29 +334,62 @@ String compileString(String source) {
   source.replace("[UPTIME]",String(millis()));
   source.replace("[IDX]",String(messageIdx));
   source.replace("[CYCLES]",String(displayCycles));
-   
-  diff = abs(t-COUNTDOWN_TIME_T);
-  if(day(diff) > 0) {
-    countdown = day(diff)+" giorni";    
+  
+  idx = source.indexOf("[OWM");
+  if(idx >= 0) {  
+    if(strlen(config.owm_apikey) <= 0) {
+      source = "*** Configure OpenWeatherMap API Key ***";
+    } else if(owmStatus.compareTo("OK") == 0) {
+      source.replace("[OWM-CITY-NAME]",owmCityName);
+      source.replace("[OWM-NOW-T]",owmNowT);
+      source.replace("[OWM-NOW-H]",owmNowH);
+      source.replace("[OWM-NOW]",owmNow);
+      source.replace("[OWM-FORECAST-T]",owmForecastT);
+      source.replace("[OWM-FORECAST-H]",owmForecastH);
+      source.replace("[OWM-FORECAST]",owmForecast);
+    } else {
+      source = "*** Please wait: "+owmStatus;      
+    }
   }
-  if(hour(diff) > 0) {
-    countdown = countdown+", "+hour(diff)+" ore";
-  }
-  if(minute(diff) > 0) {
-    countdown = countdown+", "+minute(diff)+" minuti";
-  }      
-  if(second(diff) > 0) {
-    countdown = countdown+", "+second(diff)+" secondi";
-  }
+  
+  idx = source.indexOf("[COUNTDOWN:");
+  if(idx >= 0) {
+    temp = source.substring(idx);
+    idx = temp.indexOf("]");
+    temp = temp.substring(11,idx);
+    diff = abs(t - atol(temp.c_str()));
 
-  source.replace("[COUNTDOWN]",countdown);
-   
+    if(day(diff) > 0) {
+      countdown = day(diff)+" giorni";    
+    }
+    if(hour(diff) > 0) {
+      countdown = countdown+", "+hour(diff)+" ore";
+    }
+    if(minute(diff) > 0) {
+      countdown = countdown+", "+minute(diff)+" minuti";
+    }      
+    if(second(diff) > 0) {
+      countdown = countdown+", "+second(diff)+" secondi";
+    }
+    source.replace("[COUNTDOWN:"+temp+"]",countdown);
+  }
   return source;
 }
 
 void updateDisplayCb() {
   DEBUG_PRINT("[DEBUG] updateDisplayCb()");
   bool i=true;
+
+  if(isAPMode) {
+    // Modalità Access Point abilitata per la prima configurazione
+    displayString = "Connect via WiFi to IP "+String(myIP)+" and configure me!";
+    return;
+  }
+  
+  if(WiFi.status() != WL_CONNECTED) { 
+    displayString = "Connecting to WiFi "+String(config.wifi_essid)+"...";
+    return;
+  }
 
   if(config.display[0].length() == 0) {
     displayString = "Need at least one message: connect to "+String(WiFi.localIP());
@@ -322,7 +406,7 @@ void updateDisplayCb() {
       i = false;
     }
     messageIdx++;
-    if(messageIdx > MAX_DISPLAY_MESSAGES) {
+    if(messageIdx >= MAX_DISPLAY_MESSAGES) {
       messageIdx=0;
     }
   }
@@ -342,7 +426,9 @@ void setup() {
   Serial.println();
   Serial.println();
   Serial.print(FW_NAME);
+  Serial.print(" ");
   Serial.print(FW_VERSION);
+  Serial.print(" ");  
   Serial.println(BUILD);
 
   // Initialize SPIFFS
@@ -394,6 +480,10 @@ void setup() {
   ArduinoOTA.setHostname(config.hostname);
   ArduinoOTA.begin();
 
+  // Add OpenWeatherMap callback for periodic fetch of weather forecast, every 60xN seconds...
+  runner.addTask(owmTask);
+  owmTask.enable();
+  
   // Initialize web server on port 80
   initWebServer();
   
@@ -410,6 +500,9 @@ unsigned int last=0;
 void loop() {
   // Handle OTA
   ArduinoOTA.handle();
+
+  // Scheduler
+  runner.execute();
 
   // NTP ?
   if(syncEventTriggered) {

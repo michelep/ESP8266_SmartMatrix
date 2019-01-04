@@ -34,6 +34,9 @@ String templateProcessor(const String& var)
   if(var=="wifi_password") {
     return String(config.wifi_password);
   }
+  if(var=="wifi_rssi") {
+    return String(WiFi.RSSI());
+  }
   if(var=="ntp_server") {
     return String(config.ntp_server);
   }
@@ -52,7 +55,7 @@ String templateProcessor(const String& var)
     str_idx = atoi(var.substring(var.lastIndexOf('_')+1).c_str());
     return config.display[str_idx];
   }
-
+ 
   if(var == "scroll_delay") {
     return String(config.scroll_delay);
   }
@@ -61,6 +64,15 @@ String templateProcessor(const String& var)
   }
   if(var == "light_value") {
     return String(lightSensorValue);
+  }
+  if(var == "owm_apikey") {
+    return String(config.owm_apikey);
+  }
+  if(var == "owm_cityid") {
+    return String(config.owm_cityid);
+  }
+  if(var == "owm_status") {
+    return String(owmStatus);
   }
   return String();
 }
@@ -85,7 +97,6 @@ void initWebServer() {
       sprintf(debug,"display_%d",str_idx);
       if(request->hasParam(debug, true)) {
           config.display[str_idx] = request->getParam(debug, true)->value();
-          displayStringChanged = true;
       }
     }
     if(request->hasParam("scroll_delay", true)) {
@@ -113,7 +124,12 @@ void initWebServer() {
     if(request->hasParam("syslog_port", true)) {
         config.syslog_port = atoi(request->getParam("syslog_port", true)->value().c_str());
     }
-    
+    if(request->hasParam("owm_apikey", true)) {
+        strcpy(config.owm_apikey,request->getParam("owm_apikey", true)->value().c_str());
+    }
+    if(request->hasParam("owm_cityid", true)) {
+        config.owm_cityid = atoi(request->getParam("owm_cityid", true)->value().c_str());
+    }    
     if(saveConfigFile()) {
       request->redirect("/?result=ok");
     } else {
