@@ -9,14 +9,14 @@
 // manage NTP sync events and warn in case of error
 // ************************************
 void processSyncEvent(NTPSyncEvent_t ntpEvent) {
-  DEBUG_PRINT("[DEBUG] processSyncEvent() ");
+  DEBUG("[DEBUG] processSyncEvent() ");
   if (ntpEvent) {
-    DEBUG_PRINT("[NTP] Time Sync error: ");
+    DEBUG("[NTP] Time Sync error: ");
     if (ntpEvent == noResponse)
-      DEBUG_PRINT("[NTP] NTP server not reachable");
+      DEBUG("[NTP] NTP server not reachable");
     else if (ntpEvent == invalidAddress)
-      DEBUG_PRINT("[NTP] Invalid NTP server address");
+      DEBUG("[NTP] Invalid NTP server address");
   } else {
-    DEBUG_PRINT("[NTP] Got NTP time: "+String(NTP.getTimeDateString(NTP.getLastNTPSync())));
+    DEBUG("[NTP] Got NTP time: "+String(NTP.getTimeDateString(NTP.getLastNTPSync())));
   }
 }

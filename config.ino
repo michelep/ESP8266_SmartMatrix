@@ -9,21 +9,21 @@
 // save and load configuration from config file in SPIFFS. JSON format (need ArduinoJson library)
 // ************************************
 bool loadConfigFile() {
-  DynamicJsonBuffer jsonBuffer;
+  DynamicJsonDocument root(1024);
   char temp[256];
   uint8_t str_idx;
   
-  DEBUG_PRINT("[DEBUG] loadConfigFile()");
+  DEBUG("[DEBUG] loadConfigFile()");
   
   configFile = SPIFFS.open(CONFIG_FILE, "r");
   if (!configFile) {
-    DEBUG_PRINT("[CONFIG] Config file not available");
+    DEBUG("[CONFIG] Config file not available");
     return false;
   } else {
     // Get the root object in the document
-    JsonObject &root = jsonBuffer.parseObject(configFile);
-    if (!root.success()) {
-      DEBUG_PRINT("[CONFIG] Failed to read config file");
+    DeserializationError err = deserializeJson(root, configFile);
+    if (err) {
+      DEBUG("[CONFIG] Failed to read config file:"+String(err.c_str()));
       return false;
     } else {
       strlcpy(config.wifi_essid, root["wifi_essid"], sizeof(config.wifi_essid));
@@ -31,24 +31,26 @@ bool loadConfigFile() {
       strlcpy(config.hostname, root["hostname"] | "aiq-sensor", sizeof(config.hostname));
       strlcpy(config.ntp_server, root["ntp_server"] | "time.ien.it", sizeof(config.ntp_server));
       config.ntp_timezone = root["ntp_timezone"] | 1;
-      strlcpy(config.syslog_server, root["syslog_server"] | "", sizeof(config.syslog_server));
-      config.syslog_port = root["syslog_port"] | 514;
-      strlcpy(config.api_key, root["api_key"] | "", sizeof(config.api_key));
-      strlcpy(config.owm_apikey, root["owm_apikey"] | "", sizeof(config.owm_apikey));
-      config.owm_cityid = root["owm_cityid"] | 0;
-
+      // MQTT broker
+      strlcpy(config.broker_host, root["broker_host"] | "", sizeof(config.broker_host));
+      config.broker_port = root["broker_port"] | 1883;
+      strlcpy(config.client_id, root["client_id"] | "led-matrix", sizeof(config.client_id));
+      // OTA
+      config.ota_enable = root["ota_enable"] | true; // OTA updates enabled by default
+      // Display messages
+      strlcpy(config.json_data_url, root["json_data_url"] | "", sizeof(config.json_data_url));
       for(str_idx=0;str_idx<MAX_DISPLAY_MESSAGES;str_idx++) {
         sprintf(temp,"display_%d",str_idx);
         config.display[str_idx] = String(root[temp] | "");
         
         sprintf(temp,"[CONFIG] Load message %d: %s",str_idx,config.display[str_idx].c_str());
-        DEBUG_PRINT(temp);
+        DEBUG(temp);
       }
       
       config.scroll_delay = root["scroll_delay"] | SCROLL_DELAY;
       config.light_trigger = root["light_trigger"] | 0;
 
-      DEBUG_PRINT("[CONFIG] Configuration loaded");
+      DEBUG("[CONFIG] Configuration loaded");
     }
   }
   configFile.close();
@@ -56,24 +58,24 @@ bool loadConfigFile() {
 }
 
 bool saveConfigFile() {
-  DynamicJsonBuffer jsonBuffer;
+  DynamicJsonDocument root(1024);
   uint8_t str_idx;
   char temp[16];
   
-  DEBUG_PRINT("[DEBUG] saveConfigFile()");
-
-  // Parse the root object
-  JsonObject &root = jsonBuffer.createObject();
+  DEBUG("[DEBUG] saveConfigFile()");
 
   root["wifi_essid"] = config.wifi_essid;
   root["wifi_password"] = config.wifi_password;
   root["hostname"] = config.hostname;
   root["ntp_server"] = config.ntp_server;
   root["ntp_timezone"] = config.ntp_timezone;
-  root["syslog_server"] = config.syslog_server;
-  root["syslog_port"] = config.syslog_port;
-  root["api_key"] = config.api_key;
-  
+  root["broker_host"] = config.broker_host;
+  root["broker_port"] = config.broker_port;
+  root["client_id"] = config.client_id;
+  root["ota_enable"] = config.ota_enable;
+
+  root["json_data_url"] = config.json_data_url;
+
   for(str_idx=0;str_idx<MAX_DISPLAY_MESSAGES;str_idx++) {
     sprintf(temp,"display_%d",str_idx);
     root[temp] = config.display[str_idx].c_str();
@@ -82,20 +84,13 @@ bool saveConfigFile() {
   root["scroll_delay"] = config.scroll_delay;
   root["light_trigger"] = config.light_trigger;
 
-  root["owm_apikey"] = config.owm_apikey;
-  root["owm_cityid"] = config.owm_cityid;
-
   configFile = SPIFFS.open(CONFIG_FILE, "w");
   if(!configFile) {
-    DEBUG_PRINT("[CONFIG] Failed to create config file !");
+    DEBUG("[CONFIG] Failed to create config file !");
     return false;
   }
-  if (root.printTo(configFile) == 0) {
-    DEBUG_PRINT("[CONFIG] Failed to save config file !");
-    return false;
-  } else {
-    DEBUG_PRINT("[CONFIG] Configuration saved !");
-  }
+  serializeJson(root,configFile);
+
   configFile.close();
   return true;
 }

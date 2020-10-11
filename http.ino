@@ -43,19 +43,34 @@ String templateProcessor(const String& var)
   if(var=="ntp_timezone") {
     return String(config.ntp_timezone);
   }
-  if(var=="syslog_server") {
-    return String(config.syslog_server);
+  if(var=="broker_host") {
+    return String(config.broker_host);
   }
-  if(var=="syslog_port") {
-    return String(config.syslog_port);
+  if(var=="broker_port") {
+    return String(config.broker_port);
   }
-
+  if(var=="client_id") {
+    return String(config.client_id);
+  }  
+  if(var=="ota_enable") {
+    if(config.ota_enable) {
+      return String("checked");  
+    } else {
+      return String("");
+    }
+  }
   if(var.startsWith("display_")) {
     uint8_t str_idx;
     str_idx = atoi(var.substring(var.lastIndexOf('_')+1).c_str());
     return config.display[str_idx];
   }
- 
+  if(var == "json_data_url") {
+    return String(config.json_data_url);
+  } 
+  if(var == "external_data") {
+    return external_data;
+  } 
+  
   if(var == "scroll_delay") {
     return String(config.scroll_delay);
   }
@@ -64,15 +79,6 @@ String templateProcessor(const String& var)
   }
   if(var == "light_value") {
     return String(lightSensorValue);
-  }
-  if(var == "owm_apikey") {
-    return String(config.owm_apikey);
-  }
-  if(var == "owm_cityid") {
-    return String(config.owm_cityid);
-  }
-  if(var == "owm_status") {
-    return String(owmStatus);
   }
   return String();
 }
@@ -118,18 +124,23 @@ void initWebServer() {
     if(request->hasParam("ntp_timezone", true)) {
         config.ntp_timezone = atoi(request->getParam("ntp_timezone", true)->value().c_str());
     }
-    if(request->hasParam("syslog_server", true)) {
-        strcpy(config.syslog_server,request->getParam("syslog_server", true)->value().c_str());
+    if(request->hasParam("broker_host", true)) {
+        strcpy(config.broker_host,request->getParam("broker_host", true)->value().c_str());
     }
-    if(request->hasParam("syslog_port", true)) {
-        config.syslog_port = atoi(request->getParam("syslog_port", true)->value().c_str());
+    if(request->hasParam("broker_port", true)) {
+        config.broker_port = atoi(request->getParam("broker_port", true)->value().c_str());
     }
-    if(request->hasParam("owm_apikey", true)) {
-        strcpy(config.owm_apikey,request->getParam("owm_apikey", true)->value().c_str());
-    }
-    if(request->hasParam("owm_cityid", true)) {
-        config.owm_cityid = atoi(request->getParam("owm_cityid", true)->value().c_str());
+    if(request->hasParam("client_id", true)) {
+        strcpy(config.client_id, request->getParam("client_id", true)->value().c_str());
     }    
+    if(request->hasParam("json_data_url", true)) {
+        strcpy(config.json_data_url, request->getParam("json_data_url", true)->value().c_str());
+    }    
+    if(request->hasParam("ota_enable", true)) {
+      config.ota_enable=true;        
+    } else {
+      config.ota_enable=false;
+    } 
     if(saveConfigFile()) {
       request->redirect("/?result=ok");
     } else {
@@ -152,49 +163,7 @@ void initWebServer() {
   });
 
   server.onNotFound([](AsyncWebServerRequest *request) {
-    Serial.printf("NOT_FOUND: ");
-    if(request->method() == HTTP_GET)
-      Serial.printf("GET");
-    else if(request->method() == HTTP_POST)
-      Serial.printf("POST");
-    else if(request->method() == HTTP_DELETE)
-      Serial.printf("DELETE");
-    else if(request->method() == HTTP_PUT)
-      Serial.printf("PUT");
-    else if(request->method() == HTTP_PATCH)
-      Serial.printf("PATCH");
-    else if(request->method() == HTTP_HEAD)
-      Serial.printf("HEAD");
-    else if(request->method() == HTTP_OPTIONS)
-      Serial.printf("OPTIONS");
-    else
-      Serial.printf("UNKNOWN");
-    Serial.printf(" http://%s%s\n", request->host().c_str(), request->url().c_str());
-
-    if(request->contentLength()){
-      Serial.printf("_CONTENT_TYPE: %s\n", request->contentType().c_str());
-      Serial.printf("_CONTENT_LENGTH: %u\n", request->contentLength());
-    }
-
-    int headers = request->headers();
-    int i;
-    for(i=0;i<headers;i++){
-      AsyncWebHeader* h = request->getHeader(i);
-      Serial.printf("_HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
-    }
-
-    int params = request->params();
-    for(i=0;i<params;i++){
-      AsyncWebParameter* p = request->getParam(i);
-      if(p->isFile()){
-        Serial.printf("_FILE[%s]: %s, size: %u\n", p->name().c_str(), p->value().c_str(), p->size());
-      } else if(p->isPost()){
-        Serial.printf("_POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
-      } else {
-        Serial.printf("_GET[%s]: %s\n", p->name().c_str(), p->value().c_str());
-      }
-    }
-
+    Serial.printf("404 NOT FOUND - http://%s%s\n", request->host().c_str(), request->url().c_str());
     request->send(404);
   });
 

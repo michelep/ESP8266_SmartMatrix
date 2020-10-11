@@ -1,4 +1,4 @@
-Led Matrix Controller
+SmartMatrix
 =====================
 
 Introduction
@@ -11,7 +11,6 @@ charm all those who come to see you!
 Dependencies:
 -------------
 
-* Syslog Logger library from https://github.com/arcao/Syslog/
 * Arduino Json library from https://arduinojson.org/
 * NTP Client library from https://github.com/gmag11/NtpClient
 
@@ -68,22 +67,18 @@ Variables
 
 [CYCLES] = how many display cycles
 
-[COUNTDOWN:{timestamp}] = countdown to {timestamp} - please note there's no error check so be nice ;-)
-
-[OWM-NOW] = OpenWeatherMap current weather status (i.e cloudy, rain, snow...)
-
-[OWM-NOW-T] = OpenWeatherMap current temperature
-
-[OWM-NOW-H] = OpenWeatherMap current humidity
-
-[OWM-FORECAST] = OpenWeatherMap forecast weather (i.e cloudy, rain, snow...)
-
-[OWM-FORECAST-T] = OpenWeatherMap forecast temperature
-
-[OWM-FORECAST-H] = OpenWeatherMap forecast humidity
+[DATA] = external string fetched from json_data_url in JSON format like {"data":"string that i want to display..."}
 
 ChangeLog 
 ---------
+*v0.1.0* - 11.10.2020
+- Added json_data_url and related [DATA] field 
+- Some other minor improvements and fixes
+
+*v0.0.5*
+- Added OpenWeatherForecast timeout
+- Some minor fixes and cosmetic changes
+
 *v0.0.4* 
 - Added OpenWeatherForecast support and the related tags
 - Added first boot "Access Point" mode support to configure the device without configuration
